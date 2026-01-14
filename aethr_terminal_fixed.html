@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHR Archive Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .terminal {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #000;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+        
+        .header {
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header .subtitle {
+            color: #00aa00;
+            font-size: 14px;
+        }
+        
+        .warning {
+            color: #ff0000;
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+        }
+        
+        .menu {
+            margin: 20px 0;
+        }
+        
+        .menu-item {
+            padding: 8px;
+            margin: 5px 0;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .menu-item:hover {
+            background: rgba(0, 255, 0, 0.1);
+            border-left: 3px solid #00ff00;
+            padding-left: 15px;
+        }
+        
+        .file-list {
+            display: none;
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+        
+        .file-list.active {
+            display: block;
+        }
+        
+        .file-entry {
+            padding: 5px 0;
+            margin: 3px 0;
+        }
+        
+        .file-entry a {
+            color: #00ff00;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .file-entry a:hover {
+            text-decoration: underline;
+            color: #00ff00;
+        }
+        
+        .corrupted {
+            color: #666;
+            font-style: italic;
+        }
+        
+        .deleted {
+            color: #444;
+        }
+        
+        .glitch {
+            color: #ff0000;
+            animation: glitch 1s infinite;
+        }
+        
+        @keyframes glitch {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .back-btn {
+            color: #00aaaa;
+            cursor: pointer;
+            margin: 20px 0;
+            padding: 8px;
+            display: none;
+        }
+        
+        .back-btn.active {
+            display: block;
+        }
+        
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+        
+        .blink {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        
+        .morse-blink {
+            display: inline-block;
+        }
+        
+        .hidden-input {
+            background: transparent;
+            border: none;
+            color: transparent;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            width: 100px;
+            caret-color: transparent;
+        }
+        
+        .hidden-input:focus {
+            caret-color: #00ff00;
+            color: #00ff00;
+        }
+        
+        a:hover {
+            background: rgba(0, 255, 0, 0.1) !important;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        
+        .access-message {
+            color: #00ff00;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .access-message.show {
+            display: block;
+        }
+        
+        .file-content {
+            background: #0a0a0a;
+            padding: 30px;
+            border: 2px solid #00ff00;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.9;
+            max-height: 70vh;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            color: #00dd00;
+        }
+        
+        .file-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .file-content::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        
+        .file-content::-webkit-scrollbar-thumb {
+            background: #00ff00;
+        }
+
+        #file-viewer {
+            display: none;
+        }
+        
+        #dummy-console {
+            margin-top: 20px;
+            background: #000;
+            border: 1px solid #00ff00;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        #dummy-console::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #dummy-console::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        
+        #dummy-console::-webkit-scrollbar-thumb {
+            background: #00ff00;
+        }
+        
+        #console-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div class="header">
+            <h1>AETHR Inc. Archive Terminal // Site-Prime</h1>
+            <div class="subtitle">Last accessed: [ERROR - TIMESTAMP CORRUPTED]</div>
+            <div class="subtitle" id="runtime-display">Power source: Emergency Generator Alpha-7 (calculating runtime...)</div>
+        </div>
+        
+        <div class="warning">
+            ⚠ WARNING: Database integrity compromised. 73% of records corrupted or deleted.
+        </div>
+        
+        <div id="main-menu" class="menu" style="display: none;">
+            <div>SELECT DIVISION:</div>
+            <div class="menu-item" onclick="showDivision('aethr')">► AETHR Central Archives</div>
+            <div class="menu-item" onclick="showDivision('beacon')">► BEACON Detection Network</div>
+            <div class="menu-item" onclick="showDivision('cipher')">► CIPHER Response Teams</div>
+            <div class="menu-item" onclick="showDivision('prism')">► PRISM Analysis Division</div>
+        </div>
+        
+        <div id="locked-screen" class="menu">
+            <div style="color: #ff0000; margin-bottom: 20px;">⚠ SECURITY LOCKOUT ACTIVE</div>
+            <div style="color: #00aa00; margin-bottom: 10px;">This terminal requires authentication to access archived data.</div>
+            <div style="color: #00aa00; margin-bottom: 10px;">Emergency access code is being transmitted via backup systems.</div>
+            <div style="color: #00aa00; margin-bottom: 20px;">Decode morse signal and enter credentials below.</div>
+            <div style="color: #666; font-size: 11px; margin-bottom: 10px;">Hint: Check console (F12) for morse code reference</div>
+        </div>
+        
+        <div class="back-btn" id="back-btn" onclick="goBack()">◄ Return to Division Selection</div>
+        
+        <!-- AETHR Central -->
+        <div id="aethr-files" class="file-list">
+            <div style="margin-bottom: 15px; color: #00aaaa;">AETHR CENTRAL ARCHIVES // Clearance Level: EXECUTIVE</div>
+            <div class="file-entry"><a onclick="openFile('orientation')">New Employee Orientation - Welcome to AETHR Inc.</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry"><a onclick="openFile('board-meeting')">Board Meeting Minutes - Q4 Fiscal Review</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry"><a onclick="openFile('budget-reallocation')">Inter-Division Memo: Budget Reallocation to CIPHER</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry corrupted" onclick="attemptCorruptedFile('aethr-corrupted')">Corrupted entry</div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry"><a onclick="openFile('evacuation')">URGENT: Site-Prime Evacuation Contingencies</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry"><a onclick="openFile('discrepancies')">Re: PRISM Report Discrepancies - Anomaly Classification Concerns</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry"><a onclick="openFile('omega')">FINAL NOTICE: Immediate Facility Lockdown - Protocol Omega</a></div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry glitch">Del█t█ █ry</div>
+        </div>
+        
+        <!-- BEACON -->
+        <div id="beacon-files" class="file-list">
+            <div style="margin-bottom: 15px; color: #00aaaa;">BEACON DETECTION NETWORK // Monitoring Station Alpha</div>
+            <div class="file-entry"><a onclick="openFile('beacon-orientation')">BEACON Division Orientation - Detection Protocols</a></div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry"><a onclick="openFile('beacon-calibration')">Weekly Sensor Calibration Report - All Systems Normal</a></div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry"><a onclick="openFile('beacon-priority')">PRIORITY ALERT: Multiple Anomalous Readings - Site-Prime Perimeter</a></div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry"><a onclick="openFile('beacon-final')">FINAL TRANSMISSION: All monitoring stations offline</a></div>
+            <div class="file-entry glitch">C█rr█ted █ry</div>
+        </div>
+        
+        <!-- CIPHER -->
+        <div id="cipher-files" class="file-list">
+            <div style="margin-bottom: 15px; color: #00aaaa;">CIPHER RESPONSE TEAMS // Field Operations Command</div>
+            <div class="file-entry"><a onclick="openFile('cipher-orientation')">CIPHER Division Orientation - Field Operations Manual</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry"><a onclick="openFile('cipher-delta')">Team Delta - Deployment Log: Anomaly-047 Containment</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry"><a onclick="openFile('cipher-bravo')">URGENT: Team Bravo - No Contact for 72 Hours</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry"><a onclick="openFile('cipher-alpha')">Team Alpha Final Report: It's inside the building with us</a></div>
+            <div class="file-entry glitch">D█e█ e█try</div>
+        </div>
+        
+        <!-- PRISM -->
+        <div id="prism-files" class="file-list">
+            <div style="margin-bottom: 15px; color: #00aaaa;">PRISM ANALYSIS DIVISION // Research Wing Beta</div>
+            <div class="file-entry"><a onclick="openFile('prism-orientation')">PRISM Division Orientation - Research Guidelines</a></div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry"><a onclick="openFile('prism-classification')">Classification Report: Anomaly-047 - Temporal Signature Analysis</a></div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry"><a onclick="openFile('prism-notes')">Dr. Reeves' Notes: Unexpected Pattern in Anomaly Behavior</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry"><a onclick="openFile('prism-lab7')">Dr. Chen Missing - Lab 7 Sealed Until Further Notice</a></div>
+            <div class="file-entry deleted">Deleted entry</div>
+            <div class="file-entry corrupted">Corrupted entry</div>
+            <div class="file-entry glitch">█or██ted █nt██</div>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #00ff00; color: #00aa00; font-size: 12px;">
+            System Status: Emergency Power Active | Database Backup: Failed | Security Protocols: <span class="morse-blink" style="color: #ff0000;">OFFLINE</span>
+        </div>
+        
+        <div style="margin-top: 15px; padding: 10px; border: 1px solid #00aaaa; background: rgba(0, 170, 170, 0.05);">
+            <div style="color: #00aaaa; font-size: 11px; margin-bottom: 5px;">⚠ EXTERNAL COMMUNICATION DETECTED</div>
+            <div style="color: #00aa00; font-size: 11px;">
+                Survivors and researchers investigating AETHR incidents are coordinating via secure channels.
+            </div>
+            <div style="margin-top: 8px;">
+                <a href="https://discord.gg/UeJvBDKCJg" target="_blank" style="color: #00ff00; text-decoration: none; font-size: 12px; padding: 5px 10px; border: 1px solid #00ff00; display: inline-block; transition: all 0.2s;">
+                    ► JOIN INVESTIGATION NETWORK
+                </a>
+            </div>
+            <div style="color: #666; font-size: 10px; margin-top: 5px;">
+                [Encrypted Discord Server - Share findings, discuss theories, access additional classified materials]
+            </div>
+        </div>
+        
+        <div style="color: #00aa00; font-size: 12px; margin-top: 15px;">
+            <input type="text" id="secret-input" class="hidden-input" maxlength="6" placeholder="" autocomplete="off">
+            <span class="blink">█</span>
+        </div>
+        <div id="access-message" class="access-message"></div>
+        
+        <!-- Hidden Console Toggle -->
+        <div style="margin-top: 15px; color: #00aa00; font-size: 11px; cursor: pointer;" onclick="toggleConsole()">
+            <span style="color: #666;">[Press F12 for system diagnostics]</span>
+        </div>
+        
+        <!-- Dummy Console -->
+        <div id="dummy-console" style="display: none;">
+            <div style="color: #00ff00; margin-bottom: 10px;">AETHR SYSTEM DIAGNOSTICS CONSOLE</div>
+            <div id="console-output" style="margin-bottom: 10px;"></div>
+            <div style="display: flex; align-items: center;">
+                <span style="color: #00ff00; margin-right: 5px;">&gt;</span>
+                <input type="text" id="console-input" placeholder="Type command..." />
+            </div>
+        </div>
+        
+        <!-- File Viewer -->
+        <div id="file-viewer">
+            <div class="file-content" id="file-content"></div>
+            <div class="back-btn" style="display: block; margin-top: 20px;" onclick="closeFile()">◄ Close Document</div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for page to fully load
+        document.addEventListener('DOMContentLoaded', function() {
+        
+        let currentView = 'menu';
+        
+        // Calculate generator runtime from October 7, 2020
+        function updateRuntime() {
+            const evacuationDate = new Date('2020-10-07');
+            const now = new Date();
+            const diffTime = Math.abs(now - evacuationDate);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            document.getElementById('runtime-display').textContent = 
+                `Power source: Emergency Generator Alpha-7 (${diffDays} days runtime)`;
+        }
+        
+        // Update runtime on load
+        updateRuntime();
+        
+        // Generate random 6-digit code for each visitor
+        const userCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Morse code mapping (numbers only)
+        const morseMap = {
+            '0': '-----',
+            '1': '.----',
+            '2': '..---',
+            '3': '...--',
+            '4': '....-',
+            '5': '.....',
+            '6': '-....',
+            '7': '--...',
+            '8': '---..',
+            '9': '----.'
+        };
+        
+        // Convert code to morse
+        function generateMorseAnimation(code) {
+            let morseSequence = '';
+            for (let digit of code) {
+                morseSequence += morseMap[digit] + ' ';
+            }
+            
+            let timeline = [];
+            let currentTime = 0;
+            const dotDuration = 0.4;
+            const dashDuration = 1.2;
+            const gapDuration = 0.4;
+            const digitGap = 1.2;
+            
+            for (let char of morseSequence) {
+                if (char === '.') {
+                    timeline.push({start: currentTime, end: currentTime + dotDuration, on: true});
+                    currentTime += dotDuration + gapDuration;
+                } else if (char === '-') {
+                    timeline.push({start: currentTime, end: currentTime + dashDuration, on: true});
+                    currentTime += dashDuration + gapDuration;
+                } else if (char === ' ') {
+                    currentTime += digitGap;
+                }
+            }
+            
+            const totalDuration = currentTime + 2;
+            
+            let keyframeString = '@keyframes morseCode {';
+            timeline.forEach(segment => {
+                const startPercent = (segment.start / totalDuration * 100).toFixed(2);
+                const endPercent = (segment.end / totalDuration * 100).toFixed(2);
+                keyframeString += `${startPercent}% { opacity: 1; } `;
+                keyframeString += `${endPercent}% { opacity: 0; } `;
+            });
+            keyframeString += '100% { opacity: 0; }}';
+            
+            const styleSheet = document.createElement('style');
+            styleSheet.textContent = keyframeString;
+            document.head.appendChild(styleSheet);
+            
+            const morseElement = document.querySelector('.morse-blink');
+            morseElement.style.animation = `morseCode ${totalDuration}s infinite`;
+            
+            return totalDuration;
+        }
+        
+        generateMorseAnimation(userCode);
+        
+        // Random console messages
+        const easterEggMessages = [
+            '%c[SYSTEM WARNING] Anomalous activity detected in archived files...', 
+            '%c[BEACON LOG] Sensor array detected temporal echo at your current location',
+            '%c[NOTICE] 847 days since last personnel reported at Site-Prime',
+            '%c[WARNING] Some deleted files may be recoverable. Type "recover" to attempt.',
+            '%c[ERROR] Timeline inconsistency detected in archived records'
+        ];
+        
+        const randomMsg = easterEggMessages[Math.floor(Math.random() * easterEggMessages.length)];
+        setTimeout(() => {
+            console.log(randomMsg, 'color: #ffaa00; font-family: monospace;');
+        }, 5000);
+        
+        // Console functionality
+        let consoleHistory = [];
+        let consoleOpen = false;
+        
+        window.toggleConsole = function() {
+            const dummyConsole = document.getElementById('dummy-console');
+            const output = document.getElementById('console-output');
+            consoleOpen = !consoleOpen;
+            
+            if (consoleOpen) {
+                dummyConsole.style.display = 'block';
+                if (consoleHistory.length === 0) {
+                    addConsoleOutput('AETHR SECURITY SYSTEM', '#00ff00');
+                    addConsoleOutput('⚠ SECURITY PROTOCOLS OFFLINE', '#ff0000');
+                    addConsoleOutput('Access code transmitted via emergency beacon.', '#00aa00');
+                    addConsoleOutput('Decode morse signal to access terminal.', '#00aa00');
+                    addConsoleOutput('', '#00aa00');
+                    addConsoleOutput('Available commands: help, code, morse, recover, status', '#00aaaa');
+                    addConsoleOutput('Type "help" for more information.', '#666');
+                }
+                document.getElementById('console-input').focus();
+            } else {
+                dummyConsole.style.display = 'none';
+            }
+        }
+        
+        function addConsoleOutput(text, color = '#00ff00') {
+            const output = document.getElementById('console-output');
+            const line = document.createElement('div');
+            line.style.color = color;
+            line.style.marginBottom = '3px';
+            line.textContent = text;
+            output.appendChild(line);
+            
+            const consoleDiv = document.getElementById('dummy-console');
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        function processConsoleCommand(cmd) {
+            const command = cmd.toLowerCase().trim();
+            addConsoleOutput('> ' + cmd, '#00ff00');
+            
+            if (command === 'help') {
+                addConsoleOutput('', '#00aa00');
+                addConsoleOutput('AVAILABLE COMMANDS:', '#00aaaa');
+                addConsoleOutput('  help     - Display this help message', '#00aa00');
+                addConsoleOutput('  code     - Display your access code', '#00aa00');
+                addConsoleOutput('  morse    - Show morse code reference', '#00aa00');
+                addConsoleOutput('  recover  - Attempt to recover deleted files', '#00aa00');
+                addConsoleOutput('  status   - Show system status', '#00aa00');
+                addConsoleOutput('  clear    - Clear console output', '#00aa00');
+                
+            } else if (command === 'code') {
+                addConsoleOutput('', '#00aa00');
+                addConsoleOutput('ACCESS CODE: ' + userCode, '#00ff00');
+                addConsoleOutput('Enter this code in the terminal prompt below.', '#00aa00');
+                
+            } else if (command === 'morse') {
+                addConsoleOutput('', '#00aa00');
+                addConsoleOutput('MORSE CODE REFERENCE (NUMBERS):', '#00aaaa');
+                addConsoleOutput('0: ----- | 1: .---- | 2: ..--- | 3: ...--', '#00aa00');
+                addConsoleOutput('4: ....- | 5: ..... | 6: -.... | 7: --...', '#00aa00');
+                addConsoleOutput('8: ---.. | 9: ----.', '#00aa00');
+                
+            } else if (command === 'recover') {
+                addConsoleOutput('', '#00aa00');
+                addConsoleOutput('[SYSTEM] Scanning for recoverable deleted entries...', '#00ff00');
+                setTimeout(() => {
+                    addConsoleOutput('[FOUND] Partial recovery successful: Personnel_Manifest_Fragment.txt', '#00ff00');
+                    addConsoleOutput('', '#00aaaa');
+                    addConsoleOutput('--- RECOVERED DATA ---', '#00aaaa');
+                    addConsoleOutput('AETHR Inc. Personnel Manifest (Partial Recovery)', '#00aa00');
+                    addConsoleOutput('Site-Prime Active Roster - [CORRUPTED TIMESTAMP]', '#00aa00');
+                    addConsoleOutput('', '#ff0000');
+                    addConsoleOutput('Missing/Unaccounted Personnel:', '#ff0000');
+                    addConsoleOutput('- Agent Marcus Delgado (CIPHER Team Charlie) - Missing since 01/02/2020', '#ff8800');
+                    addConsoleOutput('- Dr. Robert Chen (PRISM) - Missing since 06/04/2020', '#ff8800');
+                    addConsoleOutput('- Agent Thomas Walsh (CIPHER Team Bravo) - Missing since 09/09/2020', '#ff8800');
+                    addConsoleOutput('- Dr. Julian Reeves (PRISM Director) - Last seen 10/07/2020', '#ff8800');
+                    addConsoleOutput('- Operator Jennifer Moss (BEACON) - Last transmission 10/07/2020', '#ff8800');
+                    addConsoleOutput('- [CORRUPTED] - 23 additional personnel unaccounted for', '#ff0000');
+                    addConsoleOutput('', '#888');
+                    addConsoleOutput('Note: Badge scan logs show anomalous activity...', '#888');
+                    addConsoleOutput('Several missing personnel badges scanned AFTER reported disappearance.', '#ff0000');
+                    addConsoleOutput('', '#00aaaa');
+                    addConsoleOutput('SECURITY LOG FRAGMENT:', '#00aaaa');
+                    addConsoleOutput('Terminal access code attempts since October 7, 2020: 8,739,377', '#ffaa00');
+                    addConsoleOutput('', '#666');
+                    addConsoleOutput('WARNING: Number of attempts exceeds expected personnel count by factor of 29,131', '#ff0000');
+                    addConsoleOutput('Origin of access attempts: INTERNAL NETWORK (Site-Prime terminals)', '#ff0000');
+                    addConsoleOutput('', '#666');
+                    addConsoleOutput('Note: Facility evacuated October 7, 2020. All terminals should be unmanned.', '#888');
+                    addConsoleOutput('Something has been trying to access this system for years.', '#ff0000');
+                    addConsoleOutput('--- END RECOVERED DATA ---', '#00aaaa');
+                }, 1500);
+                
+            } else if (command === 'status') {
+                addConsoleOutput('', '#00aa00');
+                addConsoleOutput('SYSTEM STATUS:', '#00aaaa');
+                addConsoleOutput('Emergency Power: ACTIVE', '#00ff00');
+                addConsoleOutput('Database Backup: FAILED', '#ff0000');
+                addConsoleOutput('Security Protocols: OFFLINE', '#ff0000');
+                
+            } else if (command === 'clear') {
+                document.getElementById('console-output').innerHTML = '';
+                
+            } else {
+                addConsoleOutput('Unknown command. Type "help" for available commands.', '#ff0000');
+            }
+        }
+        
+        document.getElementById('console-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const command = e.target.value;
+                if (command.trim()) {
+                    processConsoleCommand(command);
+                    consoleHistory.push(command);
+                }
+                e.target.value = '';
+                e.preventDefault();
+            }
+        });
+        
+        // Secret input handler
+        document.getElementById('secret-input').addEventListener('input', function(e) {
+            const input = e.target.value.toUpperCase();
+            const messageEl = document.getElementById('access-message');
+            
+            if (input.length === 6) {
+                if (input === userCode) {
+                    messageEl.textContent = '✓ ACCESS GRANTED - PERSONNEL AUTHORIZED';
+                    messageEl.style.color = '#00ff00';
+                    messageEl.classList.add('show');
+                    
+                    setTimeout(() => {
+                        document.getElementById('locked-screen').style.display = 'none';
+                        document.getElementById('main-menu').style.display = 'block';
+                        messageEl.textContent = '✓ SECURITY PROTOCOLS RESTORED - WELCOME TO AETHR ARCHIVES';
+                    }, 1500);
+                    
+                } else {
+                    messageEl.textContent = '✗ ACCESS DENIED - INVALID CREDENTIALS';
+                    messageEl.style.color = '#ff0000';
+                    messageEl.classList.add('show');
+                    setTimeout(() => {
+                        e.target.value = '';
+                        messageEl.classList.remove('show');
+                    }, 2000);
+                }
+            } else {
+                messageEl.classList.remove('show');
+            }
+        });
+        
+        // Console log for debugging
+        console.log('%cAETHR SECURITY SYSTEM', 'color: #00ff00; font-size: 16px; font-family: monospace;');
+        console.log('%c⚠ SECURITY PROTOCOLS OFFLINE', 'color: #ff0000; font-family: monospace;');
+        console.log('%cAccess code transmitted via emergency beacon.', 'color: #00aa00; font-family: monospace;');
+        console.log('%c\nMorse Code Reference:', 'color: #00aaaa; font-family: monospace;');
+        console.log('%c0: ----- | 1: .---- | 2: ..--- | 3: ...--', 'color: #00aa00; font-family: monospace;');
+        console.log('%c4: ....- | 5: ..... | 6: -.... | 7: --...', 'color: #00aa00; font-family: monospace;');
+        console.log('%c8: ---.. | 9: ----.', 'color: #00aa00; font-family: monospace;');
+        console.log('%c\n(Developer note - Code: ' + userCode + ')', 'color: #004400; font-size: 10px; font-family: monospace;');
+        
+        window.openFile = function(fileId) {
+            const files = {
+                'orientation': 'AETHR Inc. New Employee Orientation\n\nWelcome to the future of scientific discovery...\n\n[Sample content - full files would be loaded here]',
+                'board-meeting': 'Board Meeting Minutes - Q4 2019\n\n[Financial discussions and budget concerns...]',
+                'budget-reallocation': 'Budget Reallocation Memo\n\n[Details about funding changes...]',
+                'evacuation': 'Site-Prime Evacuation Contingencies\n\n[Emergency protocols...]',
+                'discrepancies': 'PRISM Report Discrepancies\n\n[Dr. Reeves concerns...]',
+                'omega': 'PROTOCOL OMEGA ACTIVATION\n\nTHIS IS NOT A DRILL\n\n[Evacuation orders...]',
+                'beacon-orientation': 'BEACON Division Orientation\n\n[Detection protocols...]',
+                'beacon-calibration': 'Weekly Sensor Calibration Report\n\n[Normal operations...]',
+                'beacon-priority': 'PRIORITY ALERT\n\nMultiple anomalous readings detected...',
+                'beacon-final': 'FINAL TRANSMISSION\n\nAll monitoring stations offline...',
+                'cipher-orientation': 'CIPHER Division Orientation\n\n[Field operations manual...]',
+                'cipher-delta': 'Team Delta Deployment Log\n\n[Successful containment mission...]',
+                'cipher-bravo': 'Team Bravo - No Contact\n\n[Missing agents report...]',
+                'cipher-alpha': 'Team Alpha Final Report\n\n[Last transmission...]',
+                'prism-orientation': 'PRISM Division Orientation\n\n[Research guidelines...]',
+                'prism-classification': 'Anomaly-047 Classification\n\n[Analysis report...]',
+                'prism-notes': 'Dr. Reeves Personal Notes\n\n[Concerning observations...]',
+                'prism-lab7': 'Lab 7 Incident Report\n\n[Dr. Chen disappearance...]',
+                'corrupted-email': '[FILE CORRUPTED]\n\nPartial data recovery...'
+            };
+            
+            if (files[fileId]) {
+                document.getElementById('main-menu').style.display = 'none';
+                document.querySelectorAll('.file-list').forEach(list => list.classList.remove('active'));
+                document.getElementById('back-btn').classList.remove('active');
+                
+                document.getElementById('file-content').textContent = files[fileId];
+                document.getElementById('file-viewer').style.display = 'block';
+            }
+        }
+        
+        window.closeFile = function() {
+            document.getElementById('file-viewer').style.display = 'none';
+            
+            if (currentView === 'menu') {
+                document.getElementById('main-menu').style.display = 'block';
+            } else {
+                document.getElementById(currentView + '-files').classList.add('active');
+                document.getElementById('back-btn').classList.add('active');
+            }
+        }
+        
+        window.showDivision = function(division) {
+            document.getElementById('main-menu').style.display = 'none';
+            document.querySelectorAll('.file-list').forEach(list => list.classList.remove('active'));
+            document.getElementById(division + '-files').classList.add('active');
+            document.getElementById('back-btn').classList.add('active');
+            currentView = division;
+        }
+        
+        window.goBack = function() {
+            document.getElementById('main-menu').style.display = 'block';
+            document.querySelectorAll('.file-list').forEach(list => list.classList.remove('active'));
+            document.getElementById('back-btn').classList.remove('active');
+            currentView = 'menu';
+        }
+        
+        window.attemptCorruptedFile = function(fileId) {
+            const messageEl = document.getElementById('access-message');
+            messageEl.innerHTML = '<span style="color: #ffaa00;">⚠ FILE CORRUPTED - PARTIAL DATA RECOVERY ATTEMPTED</span>';
+            messageEl.classList.add('show');
+            
+            setTimeout(() => {
+                openFile('corrupted-email');
+                messageEl.classList.remove('show');
+            }, 1500);
+        }
+        
+        }); // End DOMContentLoaded
+    </script>
+</body>
+</html>
